@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		165625B82E03C1D600B8CF6D /* FAST.AI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FAST.AI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		165625B82E03C1D600B8CF6D /* StrokeSentry.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StrokeSentry.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -40,7 +40,7 @@
 		165625B92E03C1D600B8CF6D /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				165625B82E03C1D600B8CF6D /* FAST.AI.app */,
+				165625B82E03C1D600B8CF6D /* StrokeSentry.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,9 +48,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		165625B72E03C1D600B8CF6D /* FAST.AI */ = {
+		165625B72E03C1D600B8CF6D /* StrokeSentry */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 165625C32E03C1D700B8CF6D /* Build configuration list for PBXNativeTarget "FAST.AI" */;
+			buildConfigurationList = 165625C32E03C1D700B8CF6D /* Build configuration list for PBXNativeTarget "StrokeSentry" */;
 			buildPhases = (
 				165625B42E03C1D600B8CF6D /* Sources */,
 				165625B52E03C1D600B8CF6D /* Frameworks */,
@@ -63,11 +63,11 @@
 			fileSystemSynchronizedGroups = (
 				165625BA2E03C1D600B8CF6D /* FAST.AI */,
 			);
-			name = FAST.AI;
+			name = StrokeSentry;
 			packageProductDependencies = (
 			);
 			productName = FAST.AI;
-			productReference = 165625B82E03C1D600B8CF6D /* FAST.AI.app */;
+			productReference = 165625B82E03C1D600B8CF6D /* StrokeSentry.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -85,7 +85,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 165625B32E03C1D600B8CF6D /* Build configuration list for PBXProject "FAST.AI" */;
+			buildConfigurationList = 165625B32E03C1D600B8CF6D /* Build configuration list for PBXProject "StrokeSentry" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -99,7 +99,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				165625B72E03C1D600B8CF6D /* FAST.AI */,
+				165625B72E03C1D600B8CF6D /* StrokeSentry */,
 			);
 		};
 /* End PBXProject section */
@@ -256,6 +256,9 @@
 				DEVELOPMENT_TEAM = NNJUP3PJAW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to analyze your facial expressions and arm movements for stroke detection.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app uses the microphone to analyze your speech for potential stroke symptoms.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "This app uses speech recognition to analyze your speech clarity for stroke detection.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -284,6 +287,9 @@
 				DEVELOPMENT_TEAM = NNJUP3PJAW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to analyze your facial expressions and arm movements for stroke detection.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app uses the microphone to analyze your speech for potential stroke symptoms.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "This app uses speech recognition to analyze your speech clarity for stroke detection.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -305,7 +311,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		165625B32E03C1D600B8CF6D /* Build configuration list for PBXProject "FAST.AI" */ = {
+		165625B32E03C1D600B8CF6D /* Build configuration list for PBXProject "StrokeSentry" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				165625C12E03C1D700B8CF6D /* Debug */,
@@ -314,7 +320,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		165625C32E03C1D700B8CF6D /* Build configuration list for PBXNativeTarget "FAST.AI" */ = {
+		165625C32E03C1D700B8CF6D /* Build configuration list for PBXNativeTarget "StrokeSentry" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				165625C42E03C1D700B8CF6D /* Debug */,
