@@ -2,13 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>NSCameraUsageDescription</key>
-    <string>StrokeSentry needs camera access to detect facial asymmetry and arm movement for stroke assessment.</string>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>StrokeSentry needs microphone access to analyze speech clarity for stroke assessment.</string>
-    <key>NSSpeechRecognitionUsageDescription</key>
-    <string>StrokeSentry uses speech recognition to analyze speech patterns and detect potential stroke symptoms.</string>
-    <key>NSLocationWhenInUseUsageDescription</key>
-    <string>StrokeSentry needs location access to find nearby hospitals for emergency situations.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>StrokeSentry needs camera access in order to detect facial asymmetry and arm movement for stroke assessment.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>StrokeSentry needs microphone access to analyze speech clarity for stroke assessment.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>StrokeSentry uses speech recognition to analyze speech patterns and detect potential stroke symptoms.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>StrokeSentry needs location access to find nearby hospitals for emergency situations.</string>
 </dict>
 </plist>
