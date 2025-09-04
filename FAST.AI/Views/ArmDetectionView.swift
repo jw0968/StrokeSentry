@@ -14,7 +14,7 @@ struct ArmDetectionView: View {
     @StateObject private var poseManager = PoseDetectionManager()
     @State private var isAnalyzing = false
     @State private var showingResults = false
-    @State private var analysisResult: (driftScore: Double, strengthScore: Double, confidence: Double) = (0.0, 0.0, 0.0)
+    @State private var analysisResult: (symmetryScore: Double, strengthScore: Double, confidence: Double) = (0.0, 0.0, 0.0)
 
     var body: some View {
         ZStack {
@@ -34,7 +34,7 @@ struct ArmDetectionView: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(.black)
 
-                            Text("Face the camera and hold both arms out to the sides")
+                            Text("Face the camera and hold both arms out in front")
                                 .font(.body)
                                 .foregroundColor(.black)
                                 .multilineTextAlignment(.center)
@@ -46,7 +46,7 @@ struct ArmDetectionView: View {
                                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                         .scaleEffect(1.5)
                                     
-                                    Text("Analyzing arm position and strength...")
+                                    Text("Analyzing arm position and symmetry...")
                                         .font(.caption)
                                         .foregroundColor(.gray)
                                 }
@@ -60,7 +60,7 @@ struct ArmDetectionView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                     .padding()
 
                     Button("Reset") {
@@ -94,24 +94,26 @@ struct ArmDetectionView: View {
     private func startAnalysis() {
         isAnalyzing = true
 
-        poseManager.startArmDetection { driftScore, strengthScore, confidence in
-            analysisResult = (driftScore, strengthScore, confidence)
+        poseManager.startArmDetection { symmetryScore, strengthScore, confidence in
+            analysisResult = (symmetryScore, strengthScore, confidence)
             
             DispatchQueue.main.async {
                 isAnalyzing = false
                 
                 let testResult: StrokeSession.TestResult
-                if confidence < 0.3 || driftScore > 0.4 || strengthScore < 0.6 {
+                if confidence < 0.3 {
+                    testResult = .inconclusive
+                } else if symmetryScore > 0.4 || strengthScore < 0.6 {
                     testResult = .abnormal
                 } else {
                     testResult = .normal
                 }
                 
-                if var session = sessionManager.currentSession {
+                if var session = sessionManager.activeSession {
                     session.armTestResult = testResult
-                    session.armDriftScore = driftScore
+                    session.armSymmetryScore = symmetryScore
                     session.armStrengthScore = strengthScore
-                    sessionManager.currentSession = session
+                    sessionManager.activeSession = session
                 }
                 
                 dismiss()
@@ -120,11 +122,11 @@ struct ArmDetectionView: View {
     }
 
     private func resetTest() {
-        if var session = sessionManager.currentSession {
+        if var session = sessionManager.activeSession {
             session.armTestResult = nil
-            session.armDriftScore = nil
+            session.armSymmetryScore = nil
             session.armStrengthScore = nil
-            sessionManager.currentSession = session
+            sessionManager.activeSession = session
         }
         
         isAnalyzing = false

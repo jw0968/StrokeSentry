@@ -11,8 +11,9 @@ import AVFoundation
 struct HomeView: View {
     @EnvironmentObject var sessionManager: StrokeSessionManager
     @State private var showingStrokeCheck = false
-    @State private var showingHistory = false
+    @State private var showingInstructions = false
     @State private var showingHospitals = false
+    @State private var showingHistory = false
     
     var body: some View {
         NavigationView {
@@ -24,20 +25,18 @@ struct HomeView: View {
                         Image("StrokeSentryLogo")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 120, height: 120)
+                            .frame(width: 150, height: 120)
                         
                         Text("StrokeSentry")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.black)
                         
-                        Text("Stroke Symptom Detection")
+                        Text("No Strokes Will Escape My Eye!")
                             .font(.title3)
                             .foregroundColor(.gray)
                     }
                     .padding(.top, 50)
-                    
-                    Spacer()
                     
                     Button(action: {
                         sessionManager.startNewSession()
@@ -70,58 +69,83 @@ struct HomeView: View {
                     }
                     .padding(.horizontal, 30)
                     
-                    HStack(spacing: 20) {
+                    VStack(spacing: 15) {
+                        HStack(spacing: 20) {
+                            Button(action: {
+                                showingInstructions = true
+                            }) {
+                                VStack(spacing: 10) {
+                                    Image(systemName: "questionmark.circle.fill")
+                                        .font(.system(size: 30))
+                                        .foregroundColor(.orange)
+                                    
+                                    Text("Instructions")
+                                        .font(.headline)
+                                        .foregroundColor(.black)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 20)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .fill(Color.orange.opacity(0.2))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 15)
+                                                .stroke(Color.orange, lineWidth: 1)
+                                        )
+                                )
+                            }
+                            
+                            Button(action: {
+                                showingHospitals = true
+                            }) {
+                                VStack(spacing: 10) {
+                                    Image(systemName: "cross.fill")
+                                        .font(.system(size: 30))
+                                        .foregroundColor(.red)
+                                    
+                                    Text("Hospitals")
+                                        .font(.headline)
+                                        .foregroundColor(.black)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 20)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .fill(Color.red.opacity(0.2))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 15)
+                                                .stroke(Color.red, lineWidth: 1)
+                                        )
+                                )
+                            }
+                        }
+                        
                         Button(action: {
                             showingHistory = true
                         }) {
                             VStack(spacing: 10) {
                                 Image(systemName: "clock.fill")
-                                    .font(.system(size: 30))
+                                    .font(.system(size: 25))
                                     .foregroundColor(.blue)
                                 
-                                Text("History")
-                                    .font(.headline)
+                                Text("View History")
+                                    .font(.subheadline)
                                     .foregroundColor(.black)
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
+                            .padding(.vertical, 15)
                             .background(
-                                RoundedRectangle(cornerRadius: 15)
+                                RoundedRectangle(cornerRadius: 12)
                                     .fill(Color.blue.opacity(0.2))
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 15)
+                                        RoundedRectangle(cornerRadius: 12)
                                             .stroke(Color.blue, lineWidth: 1)
-                                    )
-                            )
-                        }
-                        
-                        Button(action: {
-                            showingHospitals = true
-                        }) {
-                            VStack(spacing: 10) {
-                                Image(systemName: "cross.fill")
-                                    .font(.system(size: 30))
-                                    .foregroundColor(.red)
-                                
-                                Text("Hospitals")
-                                    .font(.headline)
-                                    .foregroundColor(.black)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
-                            .background(
-                                RoundedRectangle(cornerRadius: 15)
-                                    .fill(Color.red.opacity(0.2))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 15)
-                                            .stroke(Color.red, lineWidth: 1)
                                     )
                             )
                         }
                     }
                     .padding(.horizontal, 30)
                     
-                    Spacer()
                     
                     VStack(spacing: 10) {
                         Text("Remember: Time is critical in stroke treatment")
@@ -142,6 +166,9 @@ struct HomeView: View {
         .sheet(isPresented: $showingStrokeCheck) {
             StrokeCheckView()
                 .environmentObject(sessionManager)
+        }
+        .sheet(isPresented: $showingInstructions) {
+            InstructionsView()
         }
         .sheet(isPresented: $showingHistory) {
             HistoryView()

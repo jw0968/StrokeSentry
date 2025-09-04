@@ -30,12 +30,12 @@ struct HospitalsView: View {
                     if isLoading {
                         VStack(spacing: 20) {
                             ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .progressViewStyle(CircularProgressViewStyle(tint: .blue))
                                 .scaleEffect(1.5)
                             
                             Text("Finding nearby hospitals...")
                                 .font(.title3)
-                                .foregroundColor(.white)
+                                .foregroundColor(.black)
                         }
                     } else if hospitals.isEmpty && !isLoading && !showingError {
                         VStack(spacing: 20) {
@@ -46,21 +46,34 @@ struct HospitalsView: View {
                             Text("Location Required")
                                 .font(.title2)
                                 .fontWeight(.semibold)
-                                .foregroundColor(.white)
+                                .foregroundColor(.black)
                             
                             Text("We need your location to find nearby hospitals")
                                 .font(.body)
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)
                             
-                            Button("Try Again") {
-                                setupLocationAndSearch()
+                            VStack(spacing: 12) {
+                                Button("Try Again") {
+                                    setupLocationAndSearch()
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 30)
+                                .padding(.vertical, 15)
+                                .background(Color.blue)
+                                .cornerRadius(25)
+                                
+                                if locationManager.authorizationStatus == .denied || locationManager.authorizationStatus == .restricted {
+                                    Button("Open Settings") {
+                                        openSettings()
+                                    }
+                                    .foregroundColor(.blue)
+                                    .padding(.horizontal, 30)
+                                    .padding(.vertical, 15)
+                                    .background(Color.white.opacity(0.2))
+                                    .cornerRadius(25)
+                                }
                             }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 30)
-                            .padding(.vertical, 15)
-                            .background(Color.blue)
-                            .cornerRadius(25)
                         }
                     } else {
                         VStack(spacing: 0) {
@@ -108,23 +121,35 @@ struct HospitalsView: View {
                     Button("Back") {
                         dismiss()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Refresh") {
                         searchHospitals()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                 }
             }
         }
         .onAppear {
             setupLocationAndSearch()
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // Refresh location status when app becomes active (e.g., returning from Settings)
+            if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
+                setupLocationAndSearch()
+            }
+        }
         .alert("Location Error", isPresented: $showingError) {
             Button("OK") {
                 showingError = false
+            }
+            
+            if locationManager.authorizationStatus == .denied || locationManager.authorizationStatus == .restricted {
+                Button("Open Settings") {
+                    openSettings()
+                }
             }
         } message: {
             Text(errorMessage)
@@ -134,9 +159,8 @@ struct HospitalsView: View {
     private func setupLocationAndSearch() {
         print("HospitalsView: Setting up location and search...")
         
-        if !CLLocationManager.locationServicesEnabled() {
-            print("HospitalsView: Location services are disabled")
-            showError("Location Error: Please ensure location services and app permissions are enabled")
+        // Check permissions first
+        guard checkLocationPermissions() else {
             return
         }
         
@@ -144,19 +168,27 @@ struct HospitalsView: View {
             print("HospitalsView: Location request result: \(success)")
             
             if success {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                // Wait a bit for the location to be updated
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     if let location = self.locationManager.currentLocation {
                         print("HospitalsView: Location received, updating region and searching hospitals")
                         self.region.center = location.coordinate
                         self.searchHospitals()
                     } else {
                         print("HospitalsView: No location available after delay")
-                        self.showError("Location Error: Please ensure location services and app permissions are enabled")
+                        self.showError("Unable to get your current location. Please try again or check your device settings.")
                     }
                 }
             } else {
                 print("HospitalsView: Location request failed")
-                self.showError("Location Error: Please ensure location services and app permissions are enabled")
+                // Check if it's an authorization issue
+                if self.locationManager.authorizationStatus == .denied || self.locationManager.authorizationStatus == .restricted {
+                    self.showError("Location access denied. Please enable location permissions in Settings.")
+                } else if !CLLocationManager.locationServicesEnabled() {
+                    self.showError("Location services are disabled. Please enable them in Settings.")
+                } else {
+                    self.showError("Unable to get your location. Please check your device settings and try again.")
+                }
             }
         }
     }
@@ -241,6 +273,33 @@ struct HospitalsView: View {
         errorMessage = message
         showingError = true
     }
+    
+    private func checkLocationPermissions() -> Bool {
+        if !CLLocationManager.locationServicesEnabled() {
+            showError("Location services are disabled. Please enable them in Settings > Privacy & Security > Location Services.")
+            return false
+        }
+        
+        switch locationManager.authorizationStatus {
+        case .denied, .restricted:
+            showError("Location access denied. Please enable location permissions in Settings > Privacy & Security > Location Services > StrokeSentry.")
+            return false
+        case .notDetermined:
+            // Will request permission
+            return true
+        case .authorizedWhenInUse, .authorizedAlways:
+            return true
+        @unknown default:
+            showError("Unknown location authorization status. Please check your device settings.")
+            return false
+        }
+    }
+    
+    private func openSettings() {
+        if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(settingsUrl)
+        }
+    }
 }
 
 struct HospitalCard: View {
@@ -253,11 +312,11 @@ struct HospitalCard: View {
                     Text(hospital.name)
                         .font(.headline)
                         .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                     
                     Text(hospital.address)
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.black)
                 }
                 
                 Spacer()
@@ -289,7 +348,7 @@ struct HospitalCard: View {
                         Text("Directions")
                     }
                     .font(.caption)
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(Color.blue.opacity(0.3))
@@ -325,11 +384,13 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let locationManager = CLLocationManager()
     @Published var currentLocation: CLLocation?
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
+    private var locationCompletion: ((Bool) -> Void)?
     
     override init() {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        // Use the current authorization status from the manager
         authorizationStatus = locationManager.authorizationStatus
     }
     
@@ -337,14 +398,34 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         print("LocationManager: Requesting location...")
         print("LocationManager: Current authorization status: \(authorizationStatus.rawValue)")
         
+        // Store the completion handler
+        locationCompletion = completion
+        
+        // Check if location services are enabled at the system level
+        guard CLLocationManager.locationServicesEnabled() else {
+            print("LocationManager: Location services are disabled at system level")
+            completion(false)
+            return
+        }
+        
         switch authorizationStatus {
         case .notDetermined:
             print("LocationManager: Requesting authorization...")
             locationManager.requestWhenInUseAuthorization()
-            completion(true)
+            // Don't call completion here - wait for authorization change
         case .authorizedWhenInUse, .authorizedAlways:
             print("LocationManager: Authorization granted, requesting location...")
             locationManager.requestLocation()
+            
+            // Set a timeout for location request
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
+                if let completion = self.locationCompletion {
+                    print("LocationManager: Location request timed out")
+                    completion(false)
+                    self.locationCompletion = nil
+                }
+            }
+            
             completion(true)
         case .denied, .restricted:
             print("LocationManager: Location access denied or restricted")
@@ -360,6 +441,12 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         if let location = locations.first {
             print("LocationManager: Location - lat: \(location.coordinate.latitude), lon: \(location.coordinate.longitude)")
             currentLocation = location
+            
+            // If we have a pending completion handler, call it
+            if let completion = locationCompletion {
+                completion(true)
+                locationCompletion = nil
+            }
         }
     }
     
@@ -367,6 +454,28 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         print("LocationManager: Location error: \(error.localizedDescription)")
         if let clError = error as? CLError {
             print("LocationManager: Core Location error code: \(clError.code.rawValue)")
+            
+            // Handle specific location errors
+            switch clError.code {
+            case .denied:
+                print("LocationManager: Location access denied")
+            case .locationUnknown:
+                print("LocationManager: Location temporarily unavailable")
+            case .network:
+                print("LocationManager: Network error")
+            case .headingFailure:
+                print("LocationManager: Heading failure")
+            case .rangingUnavailable:
+                print("LocationManager: Ranging unavailable")
+            default:
+                print("LocationManager: Other location error: \(clError.code.rawValue)")
+            }
+        }
+        
+        // If we have a pending completion handler, call it with failure
+        if let completion = locationCompletion {
+            completion(false)
+            locationCompletion = nil
         }
     }
     
@@ -374,9 +483,21 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         print("LocationManager: Authorization status changed to: \(status.rawValue)")
         authorizationStatus = status
         
-        if status == .authorizedWhenInUse || status == .authorizedAlways {
+        switch status {
+        case .authorizedWhenInUse, .authorizedAlways:
             print("LocationManager: Authorization granted, requesting location...")
             locationManager.requestLocation()
+        case .denied, .restricted:
+            print("LocationManager: Authorization denied or restricted")
+            // If we have a pending completion handler, call it with failure
+            if let completion = locationCompletion {
+                completion(false)
+                locationCompletion = nil
+            }
+        case .notDetermined:
+            print("LocationManager: Authorization not determined")
+        @unknown default:
+            print("LocationManager: Unknown authorization status")
         }
     }
 }

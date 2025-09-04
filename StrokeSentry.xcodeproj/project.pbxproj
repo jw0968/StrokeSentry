@@ -257,6 +257,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to analyze your facial expressions and arm movements for stroke detection.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "StrokeSentry needs location access to find nearby hospitals for emergency situations.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app uses the microphone to analyze your speech for potential stroke symptoms.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "This app uses speech recognition to analyze your speech clarity for stroke detection.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -288,6 +289,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to analyze your facial expressions and arm movements for stroke detection.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "StrokeSentry needs location access to find nearby hospitals for emergency situations.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app uses the microphone to analyze your speech for potential stroke symptoms.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "This app uses speech recognition to analyze your speech clarity for stroke detection.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

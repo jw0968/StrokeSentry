@@ -21,6 +21,29 @@ struct ResultsView: View {
             
             ScrollView {
                 VStack(spacing: 30) {
+                    // Legal Disclaimer
+                    VStack(spacing: 10) {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.red)
+                                .font(.title2)
+                            Text("Legal Disclaimer")
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.red)
+                        }
+                        
+                        Text("This app is NOT a medical device and cannot replace professional medical evaluation. Results are for educational purposes only. Always seek professional medical attention for any concerning symptoms.")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                    }
+                    .padding()
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(10)
+                    .padding(.horizontal, 20)
+                    
                     VStack(spacing: 15) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 60))
@@ -31,7 +54,7 @@ struct ResultsView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.black)
                         
-                        Text("Your FAST assessment results")
+                        Text("Your StrokeSentry assessment results")
                             .font(.title3)
                             .foregroundColor(.gray)
                     }
@@ -46,21 +69,21 @@ struct ResultsView: View {
                         VStack(spacing: 15) {
                             ResultCard(
                                 title: "Face Test",
-                                result: sessionManager.currentSession?.faceTestResult ?? .normal,
+                                result: sessionManager.activeSession?.faceTestResult ?? .normal,
                                 icon: "face.smiling",
                                 detailText: getFaceDetailText()
                             )
                             
                             ResultCard(
                                 title: "Arm Test",
-                                result: sessionManager.currentSession?.armTestResult ?? .normal,
+                                result: sessionManager.activeSession?.armTestResult ?? .normal,
                                 icon: "hand.raised",
                                 detailText: getArmDetailText()
                             )
                             
                             ResultCard(
                                 title: "Speech Test",
-                                result: sessionManager.currentSession?.speechTestResult ?? .normal,
+                                result: sessionManager.activeSession?.speechTestResult ?? .normal,
                                 icon: "mic.fill",
                                 detailText: getSpeechDetailText()
                             )
@@ -141,14 +164,16 @@ struct ResultsView: View {
             Text("If you're experiencing stroke symptoms, call 911 immediately. Time is critical for stroke treatment.")
         }
     }
-
+    
     private func calculateOverallResult() -> (title: String, description: String, color: Color, icon: String, severity: Severity) {
-        let faceResult = sessionManager.currentSession?.faceTestResult ?? .normal
-        let armResult = sessionManager.currentSession?.armTestResult ?? .normal
-        let speechResult = sessionManager.currentSession?.speechTestResult ?? .normal
+        let faceResult = sessionManager.activeSession?.faceTestResult ?? .normal
+        let armResult = sessionManager.activeSession?.armTestResult ?? .normal
+        let speechResult = sessionManager.activeSession?.speechTestResult ?? .normal
         
         let abnormalCount = [faceResult, armResult, speechResult].filter { $0 == .abnormal }.count
+        let inconclusiveCount = [faceResult, armResult, speechResult].filter { $0 == .inconclusive }.count
         
+        // If 2 or more abnormal results, it's an emergency
         if abnormalCount >= 2 {
             return (
                 title: "High Risk - Seek Immediate Medical Attention",
@@ -157,7 +182,9 @@ struct ResultsView: View {
                 icon: "exclamationmark.triangle.fill",
                 severity: .high
             )
-        } else if abnormalCount == 1 {
+        }
+        // If 1 abnormal result, it's a possible stroke
+        else if abnormalCount == 1 {
             return (
                 title: "Medium Risk - Monitor Closely",
                 description: "One stroke symptom detected. Monitor for additional symptoms and consider seeking medical evaluation.",
@@ -165,7 +192,29 @@ struct ResultsView: View {
                 icon: "exclamationmark.circle.fill",
                 severity: .medium
             )
-        } else {
+        }
+        // If 2 or more inconclusive results, it's a possible stroke (need medical evaluation)
+        else if inconclusiveCount >= 2 {
+            return (
+                title: "Medium Risk - Seek Medical Evaluation",
+                description: "Multiple inconclusive results detected. Please seek medical evaluation to rule out stroke symptoms.",
+                color: .orange,
+                icon: "exclamationmark.circle.fill",
+                severity: .medium
+            )
+        }
+        // If 1 inconclusive result, it's still a possible stroke (need medical evaluation)
+        else if inconclusiveCount == 1 {
+            return (
+                title: "Low Risk - Consider Medical Evaluation",
+                description: "One inconclusive result detected. Consider seeking medical evaluation if symptoms persist.",
+                color: .orange,
+                icon: "exclamationmark.circle.fill",
+                severity: .medium
+            )
+        }
+        // If all normal, no stroke detected
+        else {
             return (
                 title: "No Stroke Symptoms Detected",
                 description: "No obvious stroke symptoms were detected in this assessment. Continue to monitor for any changes.",
@@ -177,7 +226,7 @@ struct ResultsView: View {
     }
     
     private func getFaceDetailText() -> String? {
-        guard let session = sessionManager.currentSession,
+        guard let session = sessionManager.activeSession,
               let asymmetryScore = session.faceAsymmetryScore else { return nil }
         
         let percentage = Int((1.0 - asymmetryScore) * 100)
@@ -185,17 +234,17 @@ struct ResultsView: View {
     }
     
     private func getArmDetailText() -> String? {
-        guard let session = sessionManager.currentSession,
-              let driftScore = session.armDriftScore,
+        guard let session = sessionManager.activeSession,
+              let symmetryScore = session.armSymmetryScore,
               let strengthScore = session.armStrengthScore else { return nil }
         
-        let driftPercentage = Int((1.0 - driftScore) * 100)
+        let symmetryPercentage = Int((1.0 - symmetryScore) * 100)
         let strengthPercentage = Int(strengthScore * 100)
-        return "Stability: \(driftPercentage)%, Strength: \(strengthPercentage)%"
+        return "Symmetry: \(symmetryPercentage)%, Strength: \(strengthPercentage)%"
     }
     
     private func getSpeechDetailText() -> String? {
-        guard let session = sessionManager.currentSession,
+        guard let session = sessionManager.activeSession,
               let clarityScore = session.speechClarityScore else { return nil }
         
         let percentage = Int(clarityScore * 100)
@@ -264,6 +313,7 @@ struct ResultCard: View {
         switch result {
         case .normal: return .green
         case .abnormal: return .red
+        case .inconclusive: return .orange
         }
     }
     
@@ -271,6 +321,7 @@ struct ResultCard: View {
         switch result {
         case .normal: return "checkmark.circle.fill"
         case .abnormal: return "xmark.circle.fill"
+        case .inconclusive: return "questionmark.circle.fill"
         }
     }
 }

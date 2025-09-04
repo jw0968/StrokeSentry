@@ -17,7 +17,7 @@ struct StrokeSession: Identifiable, Codable {
     
     // Analysis scores for detailed results
     var faceAsymmetryScore: Double?
-    var armDriftScore: Double?
+    var armSymmetryScore: Double?
     var armStrengthScore: Double?
     var speechClarityScore: Double?
     
@@ -28,11 +28,13 @@ struct StrokeSession: Identifiable, Codable {
     enum TestResult: String, CaseIterable, Codable {
         case normal = "Normal"
         case abnormal = "Abnormal"
+        case inconclusive = "Inconclusive"
         
         var color: String {
             switch self {
             case .normal: return "green"
             case .abnormal: return "red"
+            case .inconclusive: return "orange"
             }
         }
     }
@@ -64,7 +66,7 @@ class SessionStorage {
         print("SessionStorage: Saving session with ID \(session.id)")
         
         do {
-            var sessions = loadSessions()
+        var sessions = loadSessions()
             
             // Safety check: ensure sessions is a valid array
             guard sessions.count >= 0 else {
@@ -73,13 +75,13 @@ class SessionStorage {
                 return
             }
             
-            sessions.append(session)
-            
-            // Keep only last 50 sessions
-            if sessions.count > 50 {
-                sessions = Array(sessions.suffix(50))
-            }
-            
+        sessions.append(session)
+        
+        // Keep only last 50 sessions
+        if sessions.count > 50 {
+            sessions = Array(sessions.suffix(50))
+        }
+        
             let data = try JSONEncoder().encode(sessions)
             userDefaults.set(data, forKey: sessionsKey)
             userDefaults.synchronize()

@@ -9,11 +9,23 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var sessionManager = StrokeSessionManager()
+    @State private var shouldShowInstructions = false
     
     var body: some View {
         if sessionManager.hasCompletedOnboarding {
             HomeView()
                 .environmentObject(sessionManager)
+                .sheet(isPresented: $shouldShowInstructions) {
+                    InstructionsView()
+                        .onDisappear {
+                            sessionManager.markInstructionsAsSeen()
+                        }
+                }
+                .onAppear {
+                    if !sessionManager.hasSeenInstructions {
+                        shouldShowInstructions = true
+                    }
+                }
         } else {
             OnboardingView()
                 .environmentObject(sessionManager)
@@ -23,81 +35,91 @@ struct ContentView: View {
 
 class StrokeSessionManager: ObservableObject {
     @Published var hasCompletedOnboarding = false
-    @Published var currentSession: StrokeSession?
-    @Published var savedSessions: [StrokeSession] = []
+    @Published var hasSeenInstructions = false
+    @Published var activeSession: StrokeSession?
+    @Published var previousSessions: [StrokeSession] = []
+    
+    private let userDefaults = UserDefaults.standard
+    private let onboardingKey = "hasCompletedOnboarding"
+    private let instructionsKey = "hasSeenInstructions"
     
     init() {
-        hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
-        loadSessions()
+        loadUserPreferences()
+        loadPreviousSessions()
     }
     
     func completeOnboarding() {
         hasCompletedOnboarding = true
-        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+        userDefaults.set(true, forKey: onboardingKey)
+    }
+    
+    func markInstructionsAsSeen() {
+        hasSeenInstructions = true
+        userDefaults.set(true, forKey: instructionsKey)
     }
     
     func startNewSession() {
-        currentSession = StrokeSession()
+        activeSession = StrokeSession()
     }
     
     func saveCurrentSession() {
-        guard let session = currentSession else { return }
+        guard let session = activeSession else { return }
         
-        print("Saving current session...")
+        var completedSession = session
+        completedSession.overallResult = determineStrokeRisk(for: session)
         
-        var updatedSession = session
-        updatedSession.overallResult = calculateOverallResult(for: session)
-        
-        SessionStorage.shared.saveSession(updatedSession)
+        SessionStorage.shared.saveSession(completedSession)
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            print("Loading sessions after save...")
-            self.loadSessions()
+            self.loadPreviousSessions()
         }
         
-        currentSession = nil
-        print("Session saved and cleared")
+        activeSession = nil
     }
     
     func resetCurrentSession() {
-        print("Resetting current session...")
-        currentSession = StrokeSession()
-        print("Current session reset to new session")
+        activeSession = StrokeSession()
     }
     
-    private func calculateOverallResult(for session: StrokeSession) -> StrokeSession.OverallResult {
-        let faceResult = session.faceTestResult ?? .normal
-        let armResult = session.armTestResult ?? .normal
-        let speechResult = session.speechTestResult ?? .normal
+    private func determineStrokeRisk(for session: StrokeSession) -> StrokeSession.OverallResult {
+        let faceTest = session.faceTestResult ?? .normal
+        let armTest = session.armTestResult ?? .normal
+        let speechTest = session.speechTestResult ?? .normal
         
-        let abnormalCount = [faceResult, armResult, speechResult].filter { $0 == .abnormal }.count
+        let allTestResults = [faceTest, armTest, speechTest]
+        let abnormalTests = allTestResults.filter { $0 == .abnormal }.count
+        let inconclusiveTests = allTestResults.filter { $0 == .inconclusive }.count
         
-        if abnormalCount >= 2 {
+        if abnormalTests >= 2 {
             return .emergency
-        } else if abnormalCount == 1 {
+        } else if abnormalTests == 1 {
+            return .possibleStroke
+        } else if inconclusiveTests >= 1 {
             return .possibleStroke
         } else {
             return .noStroke
         }
     }
     
-    func loadSessions() {
-        print("Loading sessions...")
+    func loadPreviousSessions() {
         DispatchQueue.main.async {
             do {
                 let sessions = SessionStorage.shared.loadSessions()
-                print("Loaded \(sessions.count) sessions")
-                self.savedSessions = sessions
+                self.previousSessions = sessions
             } catch {
-                print("Error loading sessions: \(error)")
-                self.savedSessions = []
+                self.previousSessions = []
             }
         }
     }
     
     func clearAllSessions() {
         SessionStorage.shared.clearSessions()
-        savedSessions.removeAll()
+        previousSessions.removeAll()
+    }
+    
+    private func loadUserPreferences() {
+        hasCompletedOnboarding = userDefaults.bool(forKey: onboardingKey)
+        hasSeenInstructions = userDefaults.bool(forKey: instructionsKey)
     }
 }
 

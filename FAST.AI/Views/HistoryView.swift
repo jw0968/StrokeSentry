@@ -17,7 +17,15 @@ struct HistoryView: View {
                 Color.white.ignoresSafeArea()
                 
                 VStack {
-                    if sessionManager.savedSessions.isEmpty {
+                    // Add prominent History title
+                    Text("History")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.black)
+                        .padding(.top, 20)
+                        .padding(.bottom, 10)
+                    
+                    if sessionManager.previousSessions.isEmpty {
                         VStack(spacing: 20) {
                             Image(systemName: "clock")
                                 .font(.system(size: 60))
@@ -35,7 +43,7 @@ struct HistoryView: View {
                         }
                         .padding()
                     } else {
-                        List(sessionManager.savedSessions, id: \.id) { session in
+                        List(sessionManager.previousSessions, id: \.id) { session in
                             SessionRow(session: session)
                                 .listRowBackground(Color.gray.opacity(0.1))
                         }
@@ -47,7 +55,7 @@ struct HistoryView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    if !sessionManager.savedSessions.isEmpty {
+                    if !sessionManager.previousSessions.isEmpty {
                         Button("Clear All") {
                             sessionManager.clearAllSessions()
                         }
@@ -64,7 +72,7 @@ struct HistoryView: View {
             }
         }
         .onAppear {
-            sessionManager.loadSessions()
+            sessionManager.loadPreviousSessions()
         }
     }
 }
@@ -134,10 +142,11 @@ struct SessionRow: View {
             let speechResult = session.speechTestResult ?? .normal
             
             let abnormalCount = [faceResult, armResult, speechResult].filter { $0 == .abnormal }.count
+            let inconclusiveCount = [faceResult, armResult, speechResult].filter { $0 == .inconclusive }.count
             
             if abnormalCount >= 2 {
                 return "High Risk"
-            } else if abnormalCount == 1 {
+            } else if abnormalCount == 1 || inconclusiveCount >= 1 {
                 return "Medium Risk"
             } else {
                 return "Low Risk"
@@ -166,9 +175,9 @@ struct SessionRow: View {
     }
     
     private func getArmDetail() -> String? {
-        guard let driftScore = session.armDriftScore,
+        guard let symmetryScore = session.armSymmetryScore,
               let strengthScore = session.armStrengthScore else { return nil }
-        let stability = Int((1.0 - driftScore) * 100)
+        let stability = Int((1.0 - symmetryScore) * 100)
         return "\(stability)%"
     }
     
@@ -212,6 +221,7 @@ struct TestResultIndicator: View {
         switch result {
         case .normal: return "checkmark.circle.fill"
         case .abnormal: return "xmark.circle.fill"
+        case .inconclusive: return "questionmark.circle.fill"
         }
     }
     
@@ -219,6 +229,7 @@ struct TestResultIndicator: View {
         switch result {
         case .normal: return .green
         case .abnormal: return .red
+        case .inconclusive: return .orange
         }
     }
 }

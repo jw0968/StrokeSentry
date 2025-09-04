@@ -14,7 +14,7 @@ class PoseDetectionManager: NSObject, ObservableObject {
     @Published var isCameraAvailable = false
     @Published var isDetecting = false
     @Published var faceAsymmetryScore: Double = 0.0
-    @Published var armDriftScore: Double = 0.0
+    @Published var armSymmetryScore: Double = 0.0
     @Published var armStrengthScore: Double = 0.0
 
     let session = AVCaptureSession()
@@ -159,12 +159,12 @@ class PoseDetectionManager: NSObject, ObservableObject {
             guard let self = self else { return }
             self.isDetecting = false
             
-            let (driftScore, strengthScore, confidence) = self.calculateArmMetrics()
-            self.armDriftScore = driftScore
+            let (symmetryScore, strengthScore, confidence) = self.calculateArmMetrics()
+            self.armSymmetryScore = symmetryScore
             self.armStrengthScore = strengthScore
             
             DispatchQueue.main.async {
-                completion(driftScore, strengthScore, confidence)
+                completion(symmetryScore, strengthScore, confidence)
             }
         }
     }
@@ -290,31 +290,31 @@ class PoseDetectionManager: NSObject, ObservableObject {
         return maxY - minY
     }
 
-    private func calculateArmMetrics() -> (driftScore: Double, strengthScore: Double, confidence: Double) {
+    private func calculateArmMetrics() -> (symmetryScore: Double, strengthScore: Double, confidence: Double) {
         guard !poseObservations.isEmpty else {
             return (0.5, 0.5, 0.0) // Neutral scores with no confidence
         }
         
-        var totalDriftScore = 0.0
+        var totalSymmetryScore = 0.0
         var totalStrengthScore = 0.0
         var validObservations = 0
         
         for observation in poseObservations {
-            let (drift, strength) = analyzeArmPosition(observation: observation)
-            totalDriftScore += drift
+            let (symmetry, strength) = analyzeArmPosition(observation: observation)
+            totalSymmetryScore += symmetry
             totalStrengthScore += strength
             validObservations += 1
         }
         
-        let averageDrift = validObservations > 0 ? totalDriftScore / Double(validObservations) : 0.5
+        let averageSymmetry = validObservations > 0 ? totalSymmetryScore / Double(validObservations) : 0.5
         let averageStrength = validObservations > 0 ? totalStrengthScore / Double(validObservations) : 0.5
         let confidence = min(Double(validObservations) / 10.0, 1.0)
         
-        return (averageDrift, averageStrength, confidence)
+        return (averageSymmetry, averageStrength, confidence)
     }
 
-    private func analyzeArmPosition(observation: VNHumanBodyPoseObservation) -> (driftScore: Double, strengthScore: Double) {
-        var driftScore = 0.5
+    private func analyzeArmPosition(observation: VNHumanBodyPoseObservation) -> (symmetryScore: Double, strengthScore: Double) {
+        var symmetryScore = 0.5
         var strengthScore = 0.5
         
         do {
@@ -331,30 +331,34 @@ class PoseDetectionManager: NSObject, ObservableObject {
             guard leftShoulder.confidence > minConfidence && rightShoulder.confidence > minConfidence &&
                   leftWrist.confidence > minConfidence && rightWrist.confidence > minConfidence &&
                   leftElbow.confidence > minConfidence && rightElbow.confidence > minConfidence else {
-                return (driftScore, strengthScore)
+                return (symmetryScore, strengthScore)
             }
             
-            // Calculate arm drift (vertical position difference)
-            let leftArmHeight = leftWrist.location.y
-            let rightArmHeight = rightWrist.location.y
-            let heightDifference = abs(leftArmHeight - rightArmHeight)
+            // Calculate forward extension (how far arms are extended forward from shoulders)
+            let leftForwardExtension = leftWrist.location.x - leftShoulder.location.x
+            let rightForwardExtension = rightShoulder.location.x - rightWrist.location.x
             
-            // Drift score: higher difference = higher drift (more abnormal)
-            driftScore = min(heightDifference * 2.0, 1.0)
+            // Calculate symmetry (difference between left and right arm extension)
+            let extensionDifference = abs(leftForwardExtension - rightForwardExtension)
+            let averageExtension = (leftForwardExtension + rightForwardExtension) / 2.0
+            
+            // Symmetry score: higher difference = higher asymmetry (more abnormal)
+            // Normalize by the average extension to get a ratio
+            symmetryScore = averageExtension > 0.1 ? min(extensionDifference / averageExtension, 1.0) : 0.5
             
             // Calculate arm strength based on arm extension and stability
             let leftArmExtension = calculateArmExtension(wrist: leftWrist, elbow: leftElbow, shoulder: leftShoulder)
             let rightArmExtension = calculateArmExtension(wrist: rightWrist, elbow: rightElbow, shoulder: rightShoulder)
             
             // Strength score: lower extension = lower strength (more abnormal)
-            let averageExtension = (leftArmExtension + rightArmExtension) / 2.0
-            strengthScore = averageExtension
+            let averageArmExtension = (leftArmExtension + rightArmExtension) / 2.0
+            strengthScore = averageArmExtension
             
         } catch {
             print("Error analyzing arm position: \(error)")
         }
         
-        return (driftScore, strengthScore)
+        return (symmetryScore, strengthScore)
     }
     
     private func calculateArmExtension(wrist: VNRecognizedPoint, elbow: VNRecognizedPoint, shoulder: VNRecognizedPoint) -> Double {

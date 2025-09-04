@@ -62,7 +62,7 @@ struct FaceDetectionView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                     .padding()
 
                     Button("Reset") {
@@ -106,17 +106,19 @@ struct FaceDetectionView: View {
                 
                 // Determine test result based on asymmetry score
                 let testResult: StrokeSession.TestResult
-                if confidence < 0.3 || asymmetryScore > 0.3 {
+                if confidence < 0.3 {
+                    testResult = .inconclusive
+                } else if asymmetryScore > 0.3 {
                     testResult = .abnormal
                 } else {
                     testResult = .normal
                 }
                 
                 // Update session with result and analysis score
-                if var session = sessionManager.currentSession {
+                if var session = sessionManager.activeSession {
                     session.faceTestResult = testResult
                     session.faceAsymmetryScore = asymmetryScore
-                    sessionManager.currentSession = session
+                    sessionManager.activeSession = session
                 }
                 
                 dismiss()
@@ -128,10 +130,10 @@ struct FaceDetectionView: View {
 
     private func resetTest() {
         // Reset the face test data
-        if var session = sessionManager.currentSession {
+        if var session = sessionManager.activeSession {
             session.faceTestResult = nil
             session.faceAsymmetryScore = nil
-            sessionManager.currentSession = session
+            sessionManager.activeSession = session
         }
         
         // Reset local state

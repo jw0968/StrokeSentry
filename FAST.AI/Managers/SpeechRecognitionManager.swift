@@ -16,10 +16,22 @@ class SpeechRecognitionManager: NSObject, ObservableObject {
     @Published var speechConfidence: Double = 0.0
     @Published var isRecording = false
     
+    // Latency monitoring properties
+    @Published var currentSegmentLatency: Double = 0.0
+    @Published var medianSegmentLatency: Double = 0.0
+    @Published var averageSegmentLatency: Double = 0.0
+    @Published var totalProcessingTime: Double = 0.0
+    @Published var recognitionStartTime: Date?
+    
     private var speechRecognizer: SFSpeechRecognizer?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
+    
+    // Latency tracking arrays
+    private var segmentLatencies: [Double] = []
+    private var recognitionLatencies: [Double] = []
+    private var segmentStartTimes: [Date] = []
     
     private var clarityHandler: ((Double, Double) -> Void)?
     private var expectedText = ""
@@ -30,7 +42,7 @@ class SpeechRecognitionManager: NSObject, ObservableObject {
     private let speechSegmentsQueue = DispatchQueue(label: "speechSegments")
     private var hasCompletedAnalysis = false
     private var errorRetryCount = 0
-    private let maxRetryCount = 2
+    private var maxRetryCount = 2
     private var isResetting = false
     private var hasCalledCompletion = false
     private var isCompleting = false
@@ -38,6 +50,136 @@ class SpeechRecognitionManager: NSObject, ObservableObject {
     override init() {
         super.init()
         setupSpeechRecognizer()
+    }
+    
+    // MARK: - Latency Monitoring Methods
+    
+    /// Records the start time for a speech segment
+    private func recordSegmentStart() {
+        let startTime = Date()
+        segmentStartTimes.append(startTime)
+        print("SpeechRecognitionManager: Segment start recorded at \(startTime)")
+    }
+    
+    /// Records the latency for a completed speech segment
+    private func recordSegmentLatency(_ latency: Double) {
+        segmentLatencies.append(latency)
+        currentSegmentLatency = latency
+        
+        // Update published properties
+        DispatchQueue.main.async {
+            self.updateLatencyMetrics()
+        }
+        
+        print("SpeechRecognitionManager: Segment latency recorded: \(latency) ms")
+    }
+    
+    /// Records the latency for speech recognition completion
+    private func recordRecognitionLatency(_ latency: Double) {
+        recognitionLatencies.append(latency)
+        print("SpeechRecognitionManager: Recognition latency recorded: \(latency) ms")
+    }
+    
+    /// Updates the published latency metrics
+    private func updateLatencyMetrics() {
+        guard !segmentLatencies.isEmpty else { return }
+        
+        // Calculate median latency
+        let sortedLatencies = segmentLatencies.sorted()
+        let count = sortedLatencies.count
+        
+        if count % 2 == 0 {
+            medianSegmentLatency = (sortedLatencies[count/2 - 1] + sortedLatencies[count/2]) / 2
+        } else {
+            medianSegmentLatency = sortedLatencies[count/2]
+        }
+        
+        // Calculate average latency
+        averageSegmentLatency = segmentLatencies.reduce(0, +) / Double(segmentLatencies.count)
+        
+        print("SpeechRecognitionManager: Updated metrics - Median: \(medianSegmentLatency) ms, Average: \(averageSegmentLatency) ms")
+    }
+    
+    /// Resets all latency tracking data
+    private func resetLatencyTracking() {
+        segmentLatencies.removeAll()
+        recognitionLatencies.removeAll()
+        segmentStartTimes.removeAll()
+        
+        DispatchQueue.main.async {
+            self.currentSegmentLatency = 0.0
+            self.medianSegmentLatency = 0.0
+            self.averageSegmentLatency = 0.0
+            self.totalProcessingTime = 0.0
+            self.recognitionStartTime = nil
+        }
+        
+        print("SpeechRecognitionManager: Latency tracking reset")
+    }
+    
+    /// Exports performance data for analysis
+    func exportPerformanceData() -> String {
+        let medianLatency = medianSegmentLatency
+        let avgLatency = averageSegmentLatency
+        let totalTime = totalProcessingTime
+        let segmentCount = segmentLatencies.count
+        
+        return """
+        Speech Recognition Performance Metrics:
+        - Median Segment Latency: \(String(format: "%.1f", medianLatency)) ms
+        - Average Segment Latency: \(String(format: "%.1f", avgLatency)) ms
+        - Total Processing Time: \(String(format: "%.1f", totalTime)) ms
+        - Total Segments Processed: \(segmentCount)
+        - Current Segment Latency: \(String(format: "%.1f", currentSegmentLatency)) ms
+        """
+    }
+    
+    /// Gets the current performance metrics as a dictionary
+    func getPerformanceMetrics() -> [String: Double] {
+        return [
+            "medianSegmentLatency": medianSegmentLatency,
+            "averageSegmentLatency": averageSegmentLatency,
+            "totalProcessingTime": totalProcessingTime,
+            "currentSegmentLatency": currentSegmentLatency,
+            "segmentCount": Double(segmentLatencies.count)
+        ]
+    }
+    
+    /// Gets a formatted string of current latency metrics for UI display
+    func getFormattedLatencyMetrics() -> String {
+        let median = String(format: "%.1f", medianSegmentLatency)
+        let average = String(format: "%.1f", averageSegmentLatency)
+        let current = String(format: "%.1f", currentSegmentLatency)
+        let total = String(format: "%.1f", totalProcessingTime)
+        
+        return """
+        Current Latency Metrics:
+        • Median Segment: \(median) ms
+        • Average Segment: \(average) ms
+        • Current Segment: \(current) ms
+        • Total Processing: \(total) ms
+        • Segments: \(segmentLatencies.count)
+        """
+    }
+    
+    /// Checks if there are sufficient latency measurements for reliable metrics
+    func hasReliableLatencyData() -> Bool {
+        return segmentLatencies.count >= 3
+    }
+    
+    /// Logs comprehensive performance data for debugging and analysis
+    func logPerformanceData() {
+        print("=== Speech Recognition Performance Report ===")
+        print("Segment Latencies: \(segmentLatencies)")
+        print("Recognition Latencies: \(recognitionLatencies)")
+        print("Current Metrics:")
+        print("  - Median Segment Latency: \(String(format: "%.1f", medianSegmentLatency)) ms")
+        print("  - Average Segment Latency: \(String(format: "%.1f", averageSegmentLatency)) ms")
+        print("  - Current Segment Latency: \(String(format: "%.1f", currentSegmentLatency)) ms")
+        print("  - Total Processing Time: \(String(format: "%.1f", totalProcessingTime)) ms")
+        print("  - Total Segments: \(segmentLatencies.count)")
+        print("  - Total Recognitions: \(recognitionLatencies.count)")
+        print("=============================================")
     }
     
     deinit {
@@ -143,6 +285,9 @@ class SpeechRecognitionManager: NSObject, ObservableObject {
         speechClarityScore = 0.0
         speechConfidence = 0.0
         
+        // Reset latency tracking
+        resetLatencyTracking()
+        
         // Clear speech segments safely
         speechSegmentsQueue.async(flags: .barrier) {
             self.speechSegments.removeAll()
@@ -194,6 +339,12 @@ class SpeechRecognitionManager: NSObject, ObservableObject {
             return
         }
 
+        // Reset latency tracking for new session
+        resetLatencyTracking()
+        
+        // Record recognition start time
+        recognitionStartTime = Date()
+        
         self.expectedText = expectedText.lowercased()
         self.clarityHandler = completion
         self.recordingStartTime = Date()
@@ -203,7 +354,7 @@ class SpeechRecognitionManager: NSObject, ObservableObject {
         
         // Clear speech segments safely
         speechSegmentsQueue.async(flags: .barrier) {
-            self.speechSegments.removeAll()
+        self.speechSegments.removeAll()
         }
         self.transcribedText = ""
         self.isRecording = true
@@ -278,6 +429,9 @@ class SpeechRecognitionManager: NSObject, ObservableObject {
                     print("Transcribed: \(bestString)")
                 }
                 
+                // Record segment start time for latency tracking
+                self.recordSegmentStart()
+                
                 // Analyze speech segments for clarity
                 self.analyzeSpeechSegments(result.bestTranscription.segments)
             }
@@ -344,6 +498,18 @@ class SpeechRecognitionManager: NSObject, ObservableObject {
                     
                     self.hasCompletedAnalysis = true
                     self.isCompleting = true
+                    
+                    // Record total recognition latency and processing time
+                    if let startTime = self.recognitionStartTime {
+                        let endTime = Date()
+                        let totalLatency = (endTime.timeIntervalSince(startTime)) * 1000 // Convert to milliseconds
+                        self.recordRecognitionLatency(totalLatency)
+                        self.totalProcessingTime = totalLatency
+                        print("SpeechRecognitionManager: Total recognition latency: \(totalLatency) ms")
+                    }
+                    
+                    // Log comprehensive performance data
+                    self.logPerformanceData()
                     
                     // Create a local copy of the completion handler to prevent issues during deallocation
                     let localCompletion = completion
@@ -487,6 +653,9 @@ class SpeechRecognitionManager: NSObject, ObservableObject {
             return
         }
         
+        // Record segment processing start time for latency measurement
+        let segmentProcessingStart = Date()
+        
         // Additional safety check for valid segments
         let validSegments = segments.filter { segment in
             guard segment.confidence.isFinite && !segment.confidence.isNaN else {
@@ -539,6 +708,11 @@ class SpeechRecognitionManager: NSObject, ObservableObject {
             
             // Atomically replace the entire array
             self.speechSegments = newSegments
+            
+            // Calculate and record segment processing latency
+            let segmentProcessingEnd = Date()
+            let segmentLatency = (segmentProcessingEnd.timeIntervalSince(segmentProcessingStart)) * 1000 // Convert to milliseconds
+            self.recordSegmentLatency(segmentLatency)
             
             print("Added \(self.speechSegments.count) segments to analysis")
         }

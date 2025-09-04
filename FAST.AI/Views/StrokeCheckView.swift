@@ -18,7 +18,7 @@ struct StrokeCheckView: View {
     
     let steps = [
         TestStep(title: "Face Test", description: "Detect facial asymmetry", icon: "face.smiling", color: .orange),
-        TestStep(title: "Arm Test", description: "Check arm strength and drift", icon: "hand.raised", color: .blue),
+        TestStep(title: "Arm Test", description: "Check arm strength and symmetry", icon: "hand.raised", color: .blue),
         TestStep(title: "Speech Test", description: "Analyze speech clarity", icon: "mic.fill", color: .green)
     ]
     
@@ -121,7 +121,7 @@ struct StrokeCheckView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                 }
             }
         }

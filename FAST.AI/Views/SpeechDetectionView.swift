@@ -41,7 +41,7 @@ struct SpeechDetectionView: View {
                     Text(testSentence)
                         .font(.title3)
                         .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 40)
                 }
@@ -70,7 +70,7 @@ struct SpeechDetectionView: View {
                                     
                                     Text(speechManager.transcribedText)
                                         .font(.body)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.black)
                                         .multilineTextAlignment(.center)
                                         .padding(.horizontal, 20)
                                 }
@@ -98,7 +98,7 @@ struct SpeechDetectionView: View {
                         }
                         dismiss()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                     .padding()
                     
                     Button("Reset") {
@@ -172,7 +172,9 @@ struct SpeechDetectionView: View {
                 self.analysisResult = (clarityScore, confidence)
                 
                 let testResult: StrokeSession.TestResult
-                if confidence < 0.3 || clarityScore < 0.6 {
+                if confidence < 0.3 {
+                    testResult = .inconclusive
+                } else if clarityScore < 0.6 {
                     testResult = .abnormal
                 } else {
                     testResult = .normal
@@ -180,13 +182,13 @@ struct SpeechDetectionView: View {
                 
                 print("Speech test result: \(testResult.rawValue)")
                 
-                if var session = self.sessionManager.currentSession {
+                if var session = self.sessionManager.activeSession {
                     session.speechTestResult = testResult
                     session.speechClarityScore = clarityScore
-                    self.sessionManager.currentSession = session
+                    self.sessionManager.activeSession = session
                     print("Updated session with speech test result")
                 } else {
-                    print("Warning: No current session available to update")
+                    print("Warning: No active session available to update")
                 }
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -207,10 +209,10 @@ struct SpeechDetectionView: View {
             speechManager.stopRecording()
         }
         
-        if var session = sessionManager.currentSession {
+        if var session = sessionManager.activeSession {
             session.speechTestResult = nil
             session.speechClarityScore = nil
-            sessionManager.currentSession = session
+            sessionManager.activeSession = session
         }
         
         analysisResult = (0.0, 0.0)
