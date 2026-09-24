@@ -70,7 +70,9 @@ By using StrokeSentry, you acknowledge that:
 ## 9. CONTACT INFORMATION
 
 For questions about these terms, contact:
-[Your Contact Information]
+
+- **Name:** Jixin Wang
+- **Email:** jixinwang08@gmail.com
 
 ---
 
